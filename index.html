@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f9d55">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Work Hours</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f9d55'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E%24%3C/text%3E%3C/svg%3E">
+<style>
+.wh-app{--g:#1f9d55;--gd:#17814a;--ink:#14201a;--mut:#6b7a72;--line:#e4eae6;--bg:#f4f7f5;position:relative;max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.35 system-ui,-apple-system,Roboto,sans-serif;padding-bottom:96px;box-sizing:border-box}
+.wh-app *{box-sizing:border-box}.wh-app button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+.wh-top{display:flex;justify-content:space-between;align-items:center;padding:18px 18px 6px}
+.wh-title{font-size:24px;font-weight:700}
+.wh-today{font-size:13px;font-weight:600;color:var(--g);padding:8px 12px;border-radius:99px;background:#e3f4ea}.wh-today:disabled{opacity:.4}
+.wh-weeknav{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 10px;font-weight:600}
+.wh-weeknav button{width:44px;height:44px;font-size:26px;border-radius:50%;color:var(--g)}
+.wh-card{margin:0 16px 14px;background:#fff;border-radius:20px;padding:18px;box-shadow:0 1px 3px rgba(20,32,26,.08)}
+.wh-big{font-size:38px;font-weight:800;letter-spacing:-1px}.wh-cap{color:var(--mut);font-size:13px;margin-top:2px}
+.wh-prog{height:8px;background:#e6efe9;border-radius:9px;margin:12px 0 16px;overflow:hidden}.wh-prog i{display:block;height:100%;background:var(--g);border-radius:9px}
+.wh-bars{display:flex;gap:6px;height:110px}.wh-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.wh-barwrap{flex:1;width:100%;display:flex;align-items:flex-end}.wh-bar{width:100%;background:#a9d9bd;border-radius:6px 6px 3px 3px;min-height:3px}
+.wh-col.today .wh-bar{background:var(--g)}.wh-hrs{font-size:11px;color:var(--mut)}.wh-dn{font-size:12px;font-weight:700}
+.wh-list{padding:0 16px}.wh-day{margin-bottom:14px}.wh-dayhead{display:flex;justify-content:space-between;color:var(--mut);font-size:13px;padding:4px 4px 6px}.wh-dayhead b{color:var(--ink)}
+.wh-entry{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:#fff;border-radius:14px;padding:14px;margin-bottom:6px;box-shadow:0 1px 2px rgba(20,32,26,.06);min-height:56px}
+.wh-time{font-weight:600}.wh-sub{font-size:12.5px;color:var(--mut);margin-top:2px}.wh-dur{font-weight:800;color:var(--gd);white-space:nowrap;margin-left:10px}
+.wh-empty{text-align:center;color:var(--mut);padding:30px 0}
+.wh-fab{position:fixed;right:max(18px,calc(50vw - 222px));bottom:22px;width:60px;height:60px;border-radius:50%;background:var(--g)!important;color:#fff!important;font-size:34px;line-height:1;box-shadow:0 4px 14px rgba(23,129,74,.45);z-index:5}
+.wh-scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10}
+.wh-sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:480px;background:#fff;border-radius:22px 22px 0 0;padding:10px 18px 20px;z-index:11;max-height:92vh;overflow:auto}
+.wh-grab{width:40px;height:4px;background:#d5ddd8;border-radius:4px;margin:0 auto 10px}.wh-sheet h2{margin:0 0 10px;font-size:19px}
+.wh-sheet label{display:block;font-size:12.5px;color:var(--mut);font-weight:600;margin-bottom:10px}
+.wh-sheet input{display:block;width:100%;margin-top:4px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:16px;color:var(--ink);background:#fafcfb}
+.wh-row2{display:flex;gap:10px}.wh-row2 label{flex:1}
+.wh-prev{margin:4px 0 14px;color:var(--mut)}.wh-prev b{color:var(--gd);font-size:17px}
+.wh-actions{display:flex;gap:8px}.wh-actions button{flex:1;padding:13px;border-radius:12px;font-weight:700}
+.wh-save{background:var(--g)!important;color:#fff!important;flex:1.5!important}.wh-cancel{background:#eef2f0!important}.wh-del{background:#fdecec!important;color:#c0392b!important}
+.wh-toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#14201a;color:#fff;padding:10px 16px;border-radius:99px;font-size:14px;z-index:20}
+.wh-bigrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.wh-pay{font-size:26px;font-weight:800;color:var(--gd)}
+.wh-dur small{display:block;font-size:12px;font-weight:600;color:var(--mut);text-align:right}
+.wh-rate{margin:-4px 0 14px;font-size:13px;color:var(--mut);font-weight:600}.wh-rate input{width:80px;margin-left:4px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:15px;color:var(--ink)}
+.wh-big{font-size:32px!important;white-space:nowrap}.wh-pay{font-size:24px!important;white-space:nowrap}
+.wh-warn{margin:4px 16px 10px;background:#fff6dc;border:1px solid #ecd9a0;color:#6d5300;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:600}
+.wh-backup{margin:2px 16px 0;padding:2px 0 6px}
+.wh-note{font-size:12px;color:var(--mut);margin:0 2px 8px}
+.wh-brow{display:flex;gap:8px}
+.wh-brow button{flex:1;background:#eef2f0!important;border-radius:12px;padding:11px;font-weight:700;font-size:14px;color:var(--ink)}
+
+</style>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Work Hours">
+</head>
+<body>
+<div id="app"></div>
+<script>
+function mount(root) {
+  const KEY = 'workhours.v1';
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const mondayOf = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - x.getDay()); return x; };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const mins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const dur = e => { let m = mins(e.end) - mins(e.start); if (m <= 0) m += 1440; return Math.max(0, m - (e.brk || 0)); };
+  const fmtDur = m => Math.floor(m / 60) + 'h ' + pad(m % 60) + 'm';
+  const fmtTime = t => { let [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + pad(m) + ' ' + ap; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const today = new Date();
+  const uid = () => 'e' + Math.random().toString(36).slice(2, 9);
+
+  let store = null;
+  try { store = window.localStorage; store.getItem('x'); } catch (e) { store = null; }
+
+  let entries = [];
+  try {
+    const raw = store ? store.getItem(KEY) : null;
+    const p = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(p)) entries = p.filter(x => x && x.date && x.start && x.end);
+  } catch (e) {}
+  let rate = 30;
+  try { const r0 = parseFloat(store ? store.getItem(KEY + '.rate') : null); if (r0 >= 0) rate = r0; } catch (e) {}
+  let lastBackup = null;
+  try { lastBackup = store ? store.getItem(KEY + '.backup') : null; } catch (e) {}
+  const save = () => { try { store && store.setItem(KEY, JSON.stringify(entries)); } catch (e) {} };
+  const saveRate = () => { try { store && store.setItem(KEY + '.rate', String(rate)); } catch (e) {} };
+  const saveBackupDate = d => { lastBackup = d; try { store && store.setItem(KEY + '.backup', d); } catch (e) {} };
+  const money = m => '$' + (m / 60 * rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  let weekStart = mondayOf(today);
+  let sheet = null; // {id?, date, start, end, brk, note}
+  let toast = '';
+
+  function weekEntries(ws) { const a = iso(ws), b = iso(addDays(ws, 6)); return entries.filter(e => e.date >= a && e.date <= b); }
+
+  function fmtLine() { const m = dur({ start: sheet.start, end: sheet.end, brk: +sheet.brk || 0 }); return fmtDur(m) + ' · ' + money(m); }
+
+  function backupNote() {
+    if (!store) return 'Shifts are not saved in this preview. Use the file on your phone.';
+    if (!entries.length) return 'Your shifts save on this phone. Back up once a week to be extra safe.';
+    if (!lastBackup) return 'No backup yet. Tap Back up to save a copy to Downloads.';
+    const pd = parse(lastBackup);
+    const age = Math.round((parse(iso(today)) - pd) / 86400000);
+    const when = MONTHS[pd.getMonth()] + ' ' + pd.getDate();
+    return age > 6 ? 'Last backup: ' + when + ' - tap Back up to refresh it.' : 'Last backup: ' + when + '.';
+  }
+
+  function doBackup() {
+    const payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), rate: rate, entries: entries }, null, 2);
+    try {
+      const blob = new Blob([payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'work-hours-backup-' + iso(today) + '.json';
+      root.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      saveBackupDate(iso(today));
+      say(entries.length ? 'Backup saved to Downloads' : 'Backup saved (no shifts yet)');
+    } catch (e) { say('Backup did not work here'); }
+  }
+
+  function doRestoreFile(f) {
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(String(r.result));
+        const arr = Array.isArray(data) ? data : (data && data.entries);
+        if (!Array.isArray(arr) || !arr.every(x => x && x.date && x.start && x.end)) throw new Error('bad');
+        entries = arr.map(x => ({ id: x.id || uid(), date: String(x.date), start: String(x.start), end: String(x.end), brk: Math.max(0, +x.brk || 0), note: x.note ? String(x.note) : '' }));
+        if (data && data.rate >= 0) { rate = +data.rate; saveRate(); }
+        save();
+        weekStart = mondayOf(today);
+        say('Restored ' + entries.length + (entries.length === 1 ? ' shift' : ' shifts'));
+      } catch (e) { say('That file is not a work hours backup'); }
+    };
+    r.onerror = () => say('Could not read that file');
+    r.readAsText(f);
+  }
+
+  function render() {
+    const we = weekEntries(weekStart);
+    const total = we.reduce((s, e) => s + dur(e), 0);
+    const perDay = DAYS.map((_, i) => we.filter(e => e.date === iso(addDays(weekStart, i))).reduce((s, e) => s + dur(e), 0));
+    const maxDay = Math.max(480, ...perDay);
+    const days = new Set(we.map(e => e.date)).size;
+    const end = addDays(weekStart, 6);
+    const range = MONTHS[weekStart.getMonth()] + ' ' + weekStart.getDate() + ' - ' + (end.getMonth() !== weekStart.getMonth() ? MONTHS[end.getMonth()] + ' ' : '') + end.getDate();
+    const isThis = iso(weekStart) === iso(mondayOf(today));
+    const TARGET = 40 * 60;
+    const pct = Math.min(100, Math.round(total / TARGET * 100));
+
+    let list = '';
+    const dates = [...new Set(we.map(e => e.date))].sort().reverse();
+    if (!dates.length) list = '<div class="wh-empty">No shifts this week.<br>Tap + to log one.</div>';
+    dates.forEach(d => {
+      const dd = parse(d), items = we.filter(e => e.date === d).sort((a, b) => a.start.localeCompare(b.start));
+      const dt = items.reduce((s, e) => s + dur(e), 0);
+      list += '<div class="wh-day"><div class="wh-dayhead"><span>' + DAYS[dd.getDay()] + ', ' + MONTHS[dd.getMonth()] + ' ' + dd.getDate() + '</span><b>' + fmtDur(dt) + ' · ' + money(dt) + '</b></div>';
+      items.forEach(e => {
+        list += '<button class="wh-entry" data-edit="' + e.id + '"><div><div class="wh-time">' + fmtTime(e.start) + ' - ' + fmtTime(e.end) + '</div><div class="wh-sub">' + (e.brk ? e.brk + ' min break' : 'No break') + (e.note ? ' · ' + esc(e.note) : '') + '</div></div><div class="wh-dur">' + fmtDur(dur(e)) + '<small>' + money(dur(e)) + '</small></div></button>';
+      });
+      list += '</div>';
+    });
+
+    let bars = '';
+    perDay.forEach((m, i) => {
+      const isToday = iso(addDays(weekStart, i)) === iso(today);
+      bars += '<div class="wh-col' + (isToday ? ' today' : '') + '"><div class="wh-barwrap"><div class="wh-bar" style="height:' + Math.round(m / maxDay * 100) + '%"></div></div><div class="wh-hrs">' + (m ? (m / 60).toFixed(1).replace('.0', '') : '-') + '</div><div class="wh-dn">' + DAYS[i][0] + '</div></div>';
+    });
+
+    let sh = '';
+    if (sheet) {
+      const prev = sheet.start && sheet.end ? fmtLine() : '';
+      sh = '<div class="wh-scrim" data-close></div><div class="wh-sheet"><div class="wh-grab"></div><h2>' + (sheet.id ? 'Edit shift' : 'Log a shift') + '</h2>' +
+        '<label>Date<input type="date" data-f="date" value="' + sheet.date + '"></label>' +
+        '<div class="wh-row2"><label>Start<input type="time" data-f="start" value="' + sheet.start + '"></label><label>End<input type="time" data-f="end" value="' + sheet.end + '"></label></div>' +
+        '<label>Unpaid break (minutes)<input type="number" min="0" step="5" inputmode="numeric" data-f="brk" value="' + sheet.brk + '"></label>' +
+        '<label>Note (optional)<input type="text" data-f="note" value="' + esc(sheet.note) + '" placeholder="e.g. Opening shift"></label>' +
+        '<div class="wh-prev">Total: <b id="wh-prev">' + prev + '</b></div>' +
+        '<div class="wh-actions">' + (sheet.id ? '<button class="wh-del" data-del>Delete</button>' : '') + '<button class="wh-cancel" data-close>Cancel</button><button class="wh-save" data-save>Save</button></div></div>';
+    }
+
+    root.innerHTML = '<div class="wh-app"><div class="wh-top"><div class="wh-title">Work Hours</div><button class="wh-today" data-today' + (isThis ? ' disabled' : '') + '>This week</button></div>' +
+      (store ? '' : '<div class="wh-warn">This preview does not save shifts. Open the file on your phone to log hours.</div>') +
+      '<div class="wh-weeknav"><button data-prev aria-label="Previous week">‹</button><div>' + range + '</div><button data-next aria-label="Next week">›</button></div>' +
+      '<div class="wh-card"><div class="wh-bigrow"><div class="wh-big">' + fmtDur(total) + '</div><div class="wh-pay">' + money(total) + '</div></div><div class="wh-cap">' + days + ' day' + (days === 1 ? '' : 's') + ' worked · goal 40h</div><div class="wh-prog"><i style="width:' + pct + '%"></i></div><div class="wh-rate"><label>Hourly rate $<input type="number" min="0" step="0.5" inputmode="decimal" data-rate value="' + rate + '"></label></div><div class="wh-bars">' + bars + '</div></div>' +
+      '<div class="wh-list">' + list + '</div>' +
+      '<div class="wh-backup"><div class="wh-note">' + backupNote() + '</div><div class="wh-brow"><button data-backup>Back up</button><button data-restore>Restore</button></div></div>' +
+      '<input type="file" accept=".json,.txt,application/json" data-file hidden>' +
+      '<button class="wh-fab" data-add aria-label="Log a shift">+</button>' + (toast ? '<div class="wh-toast">' + toast + '</div>' : '') + sh + '</div>';
+  }
+
+  function say(t) { toast = t; render(); setTimeout(() => { toast = ''; render(); }, 1600); }
+
+  root.addEventListener('click', ev => {
+    const t = ev.target.closest('button,[data-close]'); if (!t) return;
+    if (t.hasAttribute('data-prev')) { weekStart = addDays(weekStart, -7); render(); }
+    else if (t.hasAttribute('data-next')) { weekStart = addDays(weekStart, 7); render(); }
+    else if (t.hasAttribute('data-today')) { weekStart = mondayOf(today); render(); }
+    else if (t.hasAttribute('data-add')) { const d = iso(today) >= iso(weekStart) && iso(today) <= iso(addDays(weekStart, 6)) ? iso(today) : iso(weekStart); sheet = { date: d, start: '09:00', end: '17:00', brk: 30, note: '' }; render(); }
+    else if (t.dataset.edit) { const e = entries.find(x => x.id === t.dataset.edit); sheet = { ...e }; render(); }
+    else if (t.hasAttribute('data-close')) { sheet = null; render(); }
+    else if (t.hasAttribute('data-del')) { entries = entries.filter(x => x.id !== sheet.id); save(); sheet = null; say('Shift deleted'); }
+    else if (t.hasAttribute('data-backup')) { doBackup(); }
+    else if (t.hasAttribute('data-restore')) { const fi = root.querySelector('[data-file]'); if (fi) fi.click(); }
+    else if (t.hasAttribute('data-save')) {
+      if (!sheet.date || !sheet.start || !sheet.end) { say('Fill in date, start and end'); return; }
+      const rec = { id: sheet.id || uid(), date: sheet.date, start: sheet.start, end: sheet.end, brk: Math.max(0, +sheet.brk || 0), note: sheet.note || '' };
+      const i = entries.findIndex(x => x.id === rec.id);
+      if (i >= 0) entries[i] = rec; else entries.push(rec);
+      save(); weekStart = mondayOf(parse(rec.date)); const was = !!sheet.id; sheet = null; say(was ? 'Shift updated' : 'Shift added');
+    }
+  });
+  root.addEventListener('change', ev => {
+    if (ev.target.hasAttribute && ev.target.hasAttribute('data-rate')) { rate = Math.max(0, parseFloat(ev.target.value) || 0); saveRate(); render(); }
+    else if (ev.target.hasAttribute && ev.target.hasAttribute('data-file')) { const f = ev.target.files && ev.target.files[0]; if (f) doRestoreFile(f); }
+  });
+  root.addEventListener('input', ev => {
+    const f = ev.target.dataset && ev.target.dataset.f; if (!f || !sheet) return;
+    sheet[f] = ev.target.value;
+    const p = root.querySelector('#wh-prev');
+    if (p) p.textContent = sheet.start && sheet.end ? fmtLine() : '';
+  });
+  render();
+}
+
+mount(document.getElementById('app'));
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
