@@ -74,7 +74,7 @@ function mount(root) {
   const mondayOf = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - x.getDay()); return x; };
   const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const mins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-  const dur = e => { let m = mins(e.end) - mins(e.start); if (m <= 0) m += 1440; return Math.max(0, m - (e.brk || 0)); };
+  const dur = e => { let m = mins(e.end) - mins(e.start); if (m < 0) m += 1440; return Math.max(0, m - (e.brk || 0)); };
   const fmtDur = m => Math.floor(m / 60) + 'h ' + pad(m % 60) + 'm';
   const fmtTime = t => { let [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + pad(m) + ' ' + ap; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
