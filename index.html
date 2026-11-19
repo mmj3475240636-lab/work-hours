@@ -42,6 +42,15 @@
 .wh-rate{margin:-4px 0 14px;font-size:13px;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:14px;flex-wrap:wrap}.wh-rate label{display:flex;align-items:center;white-space:nowrap}.wh-rate input{width:60px;margin-left:4px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:15px;color:var(--ink)}
 .wh-big{font-size:32px!important;white-space:nowrap}.wh-pay{font-size:24px!important;white-space:nowrap}
 .wh-warn{margin:4px 16px 10px;background:#fff6dc;border:1px solid #ecd9a0;color:#6d5300;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:600}
+.wh-clock{margin:0 16px 14px;display:flex;gap:8px;align-items:stretch}
+.wh-clockin{flex:1;background:var(--g)!important;color:#fff!important;border-radius:14px;padding:14px;font-weight:800;font-size:16px;box-shadow:0 1px 3px rgba(20,32,26,.12)}
+.wh-clockout{background:#fdecec!important;color:#c0392b!important;border-radius:14px;padding:14px 18px;font-weight:800;font-size:15px}
+.wh-clockrun{flex:1;background:#fff;border-radius:14px;padding:12px 14px;font-size:14px;color:var(--mut);box-shadow:0 1px 2px rgba(20,32,26,.06);display:flex;align-items:center;gap:6px}
+.wh-clockrun b{color:var(--ink);font-size:17px}
+.wh-remind{margin:-6px 16px 14px;font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:8px;font-weight:600}
+.wh-remind input{padding:6px 8px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:14px;color:var(--ink);background:#fff}
+.wh-remind button{background:#eef2f0!important;border-radius:10px;padding:6px 12px;font-weight:700;font-size:12.5px}
+.wh-remind span{font-weight:500;font-size:12px}
 .wh-backup{margin:2px 16px 0;padding:2px 0 6px}
 .wh-note{font-size:12px;color:var(--mut);margin:0 2px 8px}
 .wh-brow{display:flex;gap:8px}
@@ -86,6 +95,34 @@ function mount(root) {
   let goalH = 40;
   try { const g0 = store ? store.getItem(KEY + '.goal') : null; if (g0 !== null) { const gp = parseFloat(g0); goalH = (gp >= 0) ? gp : 40; } } catch (e) {}
   const saveGoal = () => { try { store && store.setItem(KEY + '.goal', String(goalH)); } catch (e) {} };
+  let clockIn = null;
+  try { const c0 = store ? store.getItem(KEY + '.clockin') : null; if (c0 && !isNaN(+new Date(c0))) clockIn = c0; } catch (e) {}
+  const saveClock = () => { try { if (!store) return; if (clockIn) store.setItem(KEY + '.clockin', clockIn); else store.removeItem(KEY + '.clockin'); } catch (e) {} };
+  let remind = '';
+  try { remind = (store ? store.getItem(KEY + '.remind') : null) || ''; } catch (e) {}
+  const saveRemind = () => { try { if (!store) return; if (remind) store.setItem(KEY + '.remind', remind); else store.removeItem(KEY + '.remind'); } catch (e) {} };
+  let remindFired = null;
+  try { remindFired = store ? store.getItem(KEY + '.remindfired') : null; } catch (e) {}
+  const clockInHM = () => { const d = new Date(clockIn); return d.getHours() + ':' + pad(d.getMinutes()); };
+  function pastReminder() {
+    if (!clockIn || !remind) return false;
+    const now = new Date();
+    if (iso(new Date(clockIn)) < iso(now)) return true;
+    return now.getHours() * 60 + now.getMinutes() >= mins(remind);
+  }
+  function checkReminder() {
+    if (!pastReminder()) return;
+    const todayIso = iso(new Date());
+    if (remindFired === todayIso) return;
+    remindFired = todayIso;
+    try { store && store.setItem(KEY + '.remindfired', todayIso); } catch (e) {}
+    try {
+      if (window.Notification && Notification.permission === 'granted') {
+        new Notification("Don't forget to clock out", { body: 'Still clocked in since ' + fmtTime(clockInHM()) + '.' });
+      }
+    } catch (e) {}
+    if (!sheet) render();
+  }
   let lastBackup = null;
   try { lastBackup = store ? store.getItem(KEY + '.backup') : null; } catch (e) {}
   const save = () => { try { store && store.setItem(KEY, JSON.stringify(entries)); } catch (e) {} };
@@ -191,8 +228,13 @@ function mount(root) {
 
     root.innerHTML = '<div class="wh-app"><div class="wh-top"><div class="wh-title">Work Hours</div><button class="wh-today" data-today' + (isThis ? ' disabled' : '') + '>This week</button></div>' +
       (store ? '' : '<div class="wh-warn">This preview does not save shifts. Open the file on your phone to log hours.</div>') +
+      (pastReminder() ? '<div class="wh-warn">Still clocked in since ' + fmtTime(clockInHM()) + ' - past your ' + fmtTime(remind) + ' reminder.</div>' : '') +
       '<div class="wh-weeknav"><button data-prev aria-label="Previous week">‹</button><div>' + range + '</div><button data-next aria-label="Next week">›</button></div>' +
       '<div class="wh-card"><div class="wh-bigrow"><div class="wh-big">' + fmtDur(total) + '</div><div class="wh-pay">' + money(total) + '</div></div><div class="wh-cap">' + days + ' day' + (days === 1 ? '' : 's') + ' worked' + (TARGET > 0 ? ' · goal ' + goalH + 'h' : '') + '</div>' + (TARGET > 0 ? '<div class="wh-prog"><i style="width:' + pct + '%"></i></div>' : '') + '<div class="wh-rate"><label>Hourly rate $<input type="number" min="0" step="0.5" inputmode="decimal" data-rate value="' + rate + '"></label><label>Weekly goal <input type="number" min="0" step="1" inputmode="numeric" data-goal value="' + (goalH > 0 ? goalH : '') + '" placeholder="none">h</label></div><div class="wh-bars">' + bars + '</div></div>' +
+      (clockIn
+        ? '<div class="wh-clock"><div class="wh-clockrun"><b>' + fmtDur(Math.max(0, Math.floor((Date.now() - (+new Date(clockIn))) / 60000))) + '</b> clocked in · since ' + fmtTime(new Date(clockIn).getHours() + ':' + pad(new Date(clockIn).getMinutes())) + '</div><button class="wh-clockout" data-clockout>Clock out</button></div>'
+        : '<div class="wh-clock"><button class="wh-clockin" data-clockin>Clock in</button></div>') +
+      '<div class="wh-remind">Clock-out reminder <input type="time" data-remind value="' + remind + '">' + (remind ? '<button data-remindoff>Off</button>' : '<span>off - pick a time to turn on</span>') + '</div>' +
       '<div class="wh-list">' + list + '</div>' +
       '<div class="wh-backup"><div class="wh-note">' + backupNote() + '</div><div class="wh-brow"><button data-backup>Back up</button><button data-restore>Restore</button></div></div>' +
       '<input type="file" accept=".json,.txt,application/json" data-file hidden>' +
@@ -206,6 +248,16 @@ function mount(root) {
     if (t.hasAttribute('data-prev')) { weekStart = addDays(weekStart, -7); render(); }
     else if (t.hasAttribute('data-next')) { weekStart = addDays(weekStart, 7); render(); }
     else if (t.hasAttribute('data-today')) { weekStart = mondayOf(today); render(); }
+    else if (t.hasAttribute('data-remindoff')) { remind = ''; saveRemind(); render(); }
+    else if (t.hasAttribute('data-clockin')) { clockIn = new Date().toISOString(); saveClock(); say('Clocked in'); }
+    else if (t.hasAttribute('data-clockout')) {
+      const ci = new Date(clockIn), now = new Date();
+      const rec = { id: uid(), date: iso(ci), start: pad(ci.getHours()) + ':' + pad(ci.getMinutes()), end: pad(now.getHours()) + ':' + pad(now.getMinutes()), brk: 0, note: '' };
+      entries.push(rec); save();
+      clockIn = null; saveClock();
+      weekStart = mondayOf(parse(rec.date));
+      sheet = { ...rec }; render();
+    }
     else if (t.hasAttribute('data-add')) { const d = iso(today) >= iso(weekStart) && iso(today) <= iso(addDays(weekStart, 6)) ? iso(today) : iso(weekStart); sheet = { date: d, start: '09:00', end: '17:00', brk: 0, note: '' }; render(); }
     else if (t.dataset.edit) { const e = entries.find(x => x.id === t.dataset.edit); sheet = { ...e }; render(); }
     else if (t.hasAttribute('data-close')) { sheet = null; render(); }
@@ -223,6 +275,11 @@ function mount(root) {
   root.addEventListener('change', ev => {
     if (ev.target.hasAttribute && ev.target.hasAttribute('data-rate')) { rate = Math.max(0, parseFloat(ev.target.value) || 0); saveRate(); render(); }
     else if (ev.target.hasAttribute && ev.target.hasAttribute('data-goal')) { goalH = Math.max(0, parseFloat(ev.target.value) || 0); saveGoal(); render(); }
+    else if (ev.target.hasAttribute && ev.target.hasAttribute('data-remind')) {
+      remind = ev.target.value || ''; saveRemind();
+      if (remind && window.Notification && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) {} }
+      render();
+    }
     else if (ev.target.hasAttribute && ev.target.hasAttribute('data-file')) { const f = ev.target.files && ev.target.files[0]; if (f) doRestoreFile(f); }
   });
   root.addEventListener('input', ev => {
@@ -231,7 +288,9 @@ function mount(root) {
     const p = root.querySelector('#wh-prev');
     if (p) p.textContent = sheet.start && sheet.end ? fmtLine() : '';
   });
+  setInterval(() => { if (clockIn) { checkReminder(); if (!sheet) render(); } }, 30000);
   render();
+  checkReminder();
 }
 
 mount(document.getElementById('app'));
