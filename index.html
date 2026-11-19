@@ -83,6 +83,9 @@ function mount(root) {
   } catch (e) {}
   let rate = 30;
   try { const r0 = parseFloat(store ? store.getItem(KEY + '.rate') : null); if (r0 >= 0) rate = r0; } catch (e) {}
+  let goalH = 40;
+  try { const g0 = store ? store.getItem(KEY + '.goal') : null; if (g0 !== null) { const gp = parseFloat(g0); goalH = (gp >= 0) ? gp : 40; } } catch (e) {}
+  const saveGoal = () => { try { store && store.setItem(KEY + '.goal', String(goalH)); } catch (e) {} };
   let lastBackup = null;
   try { lastBackup = store ? store.getItem(KEY + '.backup') : null; } catch (e) {}
   const save = () => { try { store && store.setItem(KEY, JSON.stringify(entries)); } catch (e) {} };
@@ -152,8 +155,8 @@ function mount(root) {
     const end = addDays(weekStart, 6);
     const range = MONTHS[weekStart.getMonth()] + ' ' + weekStart.getDate() + ' - ' + (end.getMonth() !== weekStart.getMonth() ? MONTHS[end.getMonth()] + ' ' : '') + end.getDate();
     const isThis = iso(weekStart) === iso(mondayOf(today));
-    const TARGET = 40 * 60;
-    const pct = Math.min(100, Math.round(total / TARGET * 100));
+    const TARGET = goalH * 60;
+    const pct = TARGET > 0 ? Math.min(100, Math.round(total / TARGET * 100)) : 0;
 
     let list = '';
     const dates = [...new Set(we.map(e => e.date))].sort().reverse();
@@ -189,7 +192,7 @@ function mount(root) {
     root.innerHTML = '<div class="wh-app"><div class="wh-top"><div class="wh-title">Work Hours</div><button class="wh-today" data-today' + (isThis ? ' disabled' : '') + '>This week</button></div>' +
       (store ? '' : '<div class="wh-warn">This preview does not save shifts. Open the file on your phone to log hours.</div>') +
       '<div class="wh-weeknav"><button data-prev aria-label="Previous week">‹</button><div>' + range + '</div><button data-next aria-label="Next week">›</button></div>' +
-      '<div class="wh-card"><div class="wh-bigrow"><div class="wh-big">' + fmtDur(total) + '</div><div class="wh-pay">' + money(total) + '</div></div><div class="wh-cap">' + days + ' day' + (days === 1 ? '' : 's') + ' worked · goal 40h</div><div class="wh-prog"><i style="width:' + pct + '%"></i></div><div class="wh-rate"><label>Hourly rate $<input type="number" min="0" step="0.5" inputmode="decimal" data-rate value="' + rate + '"></label></div><div class="wh-bars">' + bars + '</div></div>' +
+      '<div class="wh-card"><div class="wh-bigrow"><div class="wh-big">' + fmtDur(total) + '</div><div class="wh-pay">' + money(total) + '</div></div><div class="wh-cap">' + days + ' day' + (days === 1 ? '' : 's') + ' worked' + (TARGET > 0 ? ' · goal ' + goalH + 'h' : '') + '</div>' + (TARGET > 0 ? '<div class="wh-prog"><i style="width:' + pct + '%"></i></div>' : '') + '<div class="wh-rate"><label>Hourly rate $<input type="number" min="0" step="0.5" inputmode="decimal" data-rate value="' + rate + '"></label> <label style="margin-left:16px">Weekly goal <input type="number" min="0" step="1" inputmode="numeric" data-goal value="' + (goalH > 0 ? goalH : '') + '" placeholder="none" style="width:64px">h</label></div><div class="wh-bars">' + bars + '</div></div>' +
       '<div class="wh-list">' + list + '</div>' +
       '<div class="wh-backup"><div class="wh-note">' + backupNote() + '</div><div class="wh-brow"><button data-backup>Back up</button><button data-restore>Restore</button></div></div>' +
       '<input type="file" accept=".json,.txt,application/json" data-file hidden>' +
@@ -203,7 +206,7 @@ function mount(root) {
     if (t.hasAttribute('data-prev')) { weekStart = addDays(weekStart, -7); render(); }
     else if (t.hasAttribute('data-next')) { weekStart = addDays(weekStart, 7); render(); }
     else if (t.hasAttribute('data-today')) { weekStart = mondayOf(today); render(); }
-    else if (t.hasAttribute('data-add')) { const d = iso(today) >= iso(weekStart) && iso(today) <= iso(addDays(weekStart, 6)) ? iso(today) : iso(weekStart); sheet = { date: d, start: '09:00', end: '17:00', brk: 30, note: '' }; render(); }
+    else if (t.hasAttribute('data-add')) { const d = iso(today) >= iso(weekStart) && iso(today) <= iso(addDays(weekStart, 6)) ? iso(today) : iso(weekStart); sheet = { date: d, start: '09:00', end: '17:00', brk: 0, note: '' }; render(); }
     else if (t.dataset.edit) { const e = entries.find(x => x.id === t.dataset.edit); sheet = { ...e }; render(); }
     else if (t.hasAttribute('data-close')) { sheet = null; render(); }
     else if (t.hasAttribute('data-del')) { entries = entries.filter(x => x.id !== sheet.id); save(); sheet = null; say('Shift deleted'); }
@@ -219,6 +222,7 @@ function mount(root) {
   });
   root.addEventListener('change', ev => {
     if (ev.target.hasAttribute && ev.target.hasAttribute('data-rate')) { rate = Math.max(0, parseFloat(ev.target.value) || 0); saveRate(); render(); }
+    else if (ev.target.hasAttribute && ev.target.hasAttribute('data-goal')) { goalH = Math.max(0, parseFloat(ev.target.value) || 0); saveGoal(); render(); }
     else if (ev.target.hasAttribute && ev.target.hasAttribute('data-file')) { const f = ev.target.files && ev.target.files[0]; if (f) doRestoreFile(f); }
   });
   root.addEventListener('input', ev => {
