@@ -1,4 +1,4 @@
-const CACHE = 'work-hours-v4';
+const CACHE = 'work-hours-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -19,6 +19,18 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // App pages: network first so updates show on the next open; fall back to cache offline.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put('./index.html', copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+  // Static assets: cache first.
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(hit => hit || fetch(e.request).then(res => {
       const copy = res.clone();
