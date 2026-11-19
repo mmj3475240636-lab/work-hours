@@ -1,4 +1,4 @@
-const CACHE = 'work-hours-v2';
+const CACHE = 'work-hours-v3';
 const ASSETS = [
   './',
   './index.html',
