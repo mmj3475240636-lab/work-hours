@@ -123,6 +123,26 @@ function mount(root) {
     } catch (e) {}
     if (!sheet) render();
   }
+  let cutoff = '';
+  try { cutoff = (store ? store.getItem(KEY + '.cutoff') : null) || ''; } catch (e) {}
+  const saveCutoff = () => { try { if (!store) return; if (cutoff) store.setItem(KEY + '.cutoff', cutoff); else store.removeItem(KEY + '.cutoff'); } catch (e) {} };
+  function cutoffMoment() {
+    if (!clockIn || !cutoff) return null;
+    const ci = new Date(clockIn), p = cutoff.split(':').map(Number);
+    const cm = new Date(ci.getFullYear(), ci.getMonth(), ci.getDate(), p[0], p[1], 0, 0);
+    if (cm <= ci) cm.setDate(cm.getDate() + 1);
+    return cm;
+  }
+  function pastCutoff() { const cm = cutoffMoment(); return !!cm && new Date() >= cm; }
+  function doAutoStop() {
+    const cm = cutoffMoment(); if (!cm) return;
+    const ci = new Date(clockIn);
+    const rec = { id: uid(), date: iso(ci), start: pad(ci.getHours()) + ':' + pad(ci.getMinutes()), end: pad(cm.getHours()) + ':' + pad(cm.getMinutes()), brk: 0, note: 'Auto-stopped at ' + fmtTime(cutoff) };
+    entries.push(rec); save();
+    clockIn = null; saveClock();
+    weekStart = mondayOf(ci);
+    say('Auto clocked out at ' + fmtTime(cutoff));
+  }
   let lastBackup = null;
   try { lastBackup = store ? store.getItem(KEY + '.backup') : null; } catch (e) {}
   const save = () => { try { store && store.setItem(KEY, JSON.stringify(entries)); } catch (e) {} };
@@ -235,6 +255,7 @@ function mount(root) {
         ? '<div class="wh-clock"><div class="wh-clockrun"><b>' + fmtDur(Math.max(0, Math.floor((Date.now() - (+new Date(clockIn))) / 60000))) + '</b> clocked in · since ' + fmtTime(new Date(clockIn).getHours() + ':' + pad(new Date(clockIn).getMinutes())) + '</div><button class="wh-clockout" data-clockout>Clock out</button></div>'
         : '<div class="wh-clock"><button class="wh-clockin" data-clockin>Clock in</button></div>') +
       '<div class="wh-remind">Clock-out reminder <input type="time" data-remind value="' + remind + '">' + (remind ? '<button data-remindoff>Off</button>' : '<span>off - pick a time to turn on</span>') + '</div>' +
+      '<div class="wh-remind">Auto clock out at <input type="time" data-cutoff value="' + cutoff + '">' + (cutoff ? '<button data-cutoffoff>Off</button>' : '<span>off - pick a time to turn on</span>') + '</div>' +
       '<div class="wh-list">' + list + '</div>' +
       '<div class="wh-backup"><div class="wh-note">' + backupNote() + '</div><div class="wh-brow"><button data-backup>Back up</button><button data-restore>Restore</button></div></div>' +
       '<input type="file" accept=".json,.txt,application/json" data-file hidden>' +
@@ -249,6 +270,7 @@ function mount(root) {
     else if (t.hasAttribute('data-next')) { weekStart = addDays(weekStart, 7); render(); }
     else if (t.hasAttribute('data-today')) { weekStart = mondayOf(today); render(); }
     else if (t.hasAttribute('data-remindoff')) { remind = ''; saveRemind(); render(); }
+    else if (t.hasAttribute('data-cutoffoff')) { cutoff = ''; saveCutoff(); render(); }
     else if (t.hasAttribute('data-clockin')) { clockIn = new Date().toISOString(); saveClock(); say('Clocked in'); }
     else if (t.hasAttribute('data-clockout')) {
       const ci = new Date(clockIn), now = new Date();
@@ -280,6 +302,9 @@ function mount(root) {
       if (remind && window.Notification && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) {} }
       render();
     }
+    else if (ev.target.hasAttribute && ev.target.hasAttribute('data-cutoff')) {
+      cutoff = ev.target.value || ''; saveCutoff(); render();
+    }
     else if (ev.target.hasAttribute && ev.target.hasAttribute('data-file')) { const f = ev.target.files && ev.target.files[0]; if (f) doRestoreFile(f); }
   });
   root.addEventListener('input', ev => {
@@ -288,9 +313,9 @@ function mount(root) {
     const p = root.querySelector('#wh-prev');
     if (p) p.textContent = sheet.start && sheet.end ? fmtLine() : '';
   });
-  setInterval(() => { if (clockIn) { checkReminder(); if (!sheet) render(); } }, 30000);
+  setInterval(() => { if (clockIn) { if (pastCutoff()) doAutoStop(); else checkReminder(); if (!sheet) render(); } }, 30000);
   render();
-  checkReminder();
+  if (clockIn) { if (pastCutoff()) doAutoStop(); else checkReminder(); }
 }
 
 mount(document.getElementById('app'));
